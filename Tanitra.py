@@ -209,3 +209,15 @@ def pooling2d(a,pool_size,stride,padding_mode= None,pad_width = None,constant_va
             return unsampled
         new_tanitra.parents.append((a,gradient_function))
     return new_tanitra
+
+def softmax(a,axis=0):
+    if not isinstance(a,Tanitra):
+        a = Tanitra(a)
+    maxed = a.data - cp.max(a.data,axis = axis,keepdims = True)
+    exponent = cp.exp(maxed)
+    sum = cp.sum(exponent,axis = axis,keepdims = True)
+    result = exponent/sum
+    new_tanitra = Tanitra(result)
+    if a.track_gradient:
+        new_tanitra.parents.append((a,lambda g: result * (g - cp.sum(g * result, axis=-1, keepdims=True))))
+    return new_tanitra
