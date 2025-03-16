@@ -219,5 +219,16 @@ def softmax(a,axis=0):
     result = exponent/sum
     new_tanitra = Tanitra(result)
     if a.track_gradient:
-        new_tanitra.parents.append((a,lambda g: result * (g - cp.sum(g * result, axis=-1, keepdims=True))))
+        new_tanitra.parents.append((a,lambda g: g.data * result * (1 - result)))
     return new_tanitra
+
+def log(x):
+    if not isinstance(x,Tanitra):
+        x = Tanitra(x)
+    x.data = cp.clip(x.data, 1e-9, None)
+    a = Tanitra(cp.log(x.data))
+    def grad_func(grad):
+        return Tanitra(grad/x.data)
+    if x.track_gradient:
+        a.parents.append((x,grad_func))
+    return a

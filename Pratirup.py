@@ -43,13 +43,14 @@ class AnukramikPratirup:
 class ShabdAyamahPratirup:
 
     def __init__(self, embedding_dimension,activation):
-        self.vocabulary = None
+        self.vocabulary = 0
         self.token_list = {}
         self.embedding_dimension = embedding_dimension
         self.activation = activation
-        self.sentences = None
+        self.sentences = []
+        self.sentence_indices = []
         self.params = {}
-        self.sentence_indices = None
+        self.params_initialized = False
 
     def sentence2indices(self,sentences, token_identification = 'separate by space', token_list = None):
         vocabulary = 0
@@ -79,33 +80,71 @@ class ShabdAyamahPratirup:
                 else:
                     sentence_indices_ith.append(self.token_list[current_token])
                 current_token = ''
-                sentence_indices.append(sentence_indices_ith)
-        self.vocabulary = vocabulary
-        self.sentence_indices = sentence_indices
+                sentence_indices.append(Tanitra.Tanitra(cp.array(sentence_indices_ith)))
+        self.vocabulary += vocabulary
+        for i in sentence_indices:
+            self.sentence_indices.append(i)
         return(sentence_indices)
 
-    def learn(self,sentences):
+    def forward_fake(self,x):
+        if not self.params_initialized:
+            self.params = {'embeddings':  Tanitra.Tanitra(cp.random.randn(self.vocabulary, self.embedding_dimension) * (1.0 / cp.sqrt(self.vocabulary))),
+                           'weight_dash': Tanitra.Tanitra(cp.random.randn(self.embedding_dimension, self.vocabulary))
+                                          / cp.sqrt(self.vocabulary/2)}
+            self.params_initialized = True
+        y = x@self.params['embeddings']
+        y = y@self.params['weight_dash']
+        y = Tanitra.softmax(y)
+        return y
+
+    def forward(self,x):
+        if not self.params_initialized:
+            self.params = { 'embeddings':Tanitra.Tanitra(cp.random.randn(self.vocabulary, self.embedding_dimension) * (1.0 / cp.sqrt(self.vocabulary))),
+                           'weight_dash': Tanitra.Tanitra(cp.random.randn(self.embedding_dimension, self.vocabulary))
+                                          / cp.sqrt(self.vocabulary/2)}
+            self.params_initialized = True
+        return self.params['embeddings'][x]
+
+    def learn(self,epochs,lr,tol,sentences):
         self.sentence_indices.append(sentences)
         training_data_x = Tanitra.Tanitra([])
         training_data_y = Tanitra.Tanitra([])
         for i in self.sentence_indices:
-            for j in range(len(i)):
+            for j in range(Tanitra.length(i)):
                 train_x = cp.zeros(self.vocabulary)
                 train_y = cp.zeros(self.vocabulary)
                 train_x[j] = 1
-                train_y[i] = cp.ones_like(train_y[:j])/len(i)-1
+                for k in range(Tanitra.length(i)):
+                    train_y[k] =1/(Tanitra.length(i)-1)
                 train_y[j] = 0
                 training_data_x = training_data_x.append(train_x)
                 training_data_x = training_data_x.append(train_y)
                 training_data_y = training_data_y.append(train_y)
                 training_data_y = training_data_y.append(train_x)
+        loss = 0
+        for _ in range(epochs):
+            prev_loss = loss
+            loss = 0
+            for i in range(Tanitra.length(training_data_x)):
+                y_pred = self.forward_fake(training_data_x[i])
+                loss += Tanitra.to_cons(Tanitra.Tanitra(0)-Tanitra.mean(training_data_y[i] * Tanitra.log(y_pred + 1e-9)))
+                req_loss = Tanitra.Tanitra(0)-training_data_y[i] * Tanitra.log(y_pred + 1e-9)
+                req_loss.backward()
+                for j in self.params:
+                    cp.clip(self.params[j].grad, -1, 1, out=self.params[j].grad)
+                    self.params[j].data = self.params[j].data - self.params[j].grad * lr
+            if prev_loss - loss < tol and _ != 0:
+                break
+            if not (prev_loss - loss < tol and _ != 0) and _ == epochs - 1:
+                raise RuntimeWarning("Error did not converge. Please consider increasing number of epochs.")
+            print("Epoch no. ", _)
+            print("  loss is ", loss)
+            print(" ")
 
-model = ShabdAyamahPratirup(123,'relu')
-a = model.sentence2indices([
-    "at"
-])
-print('vocabulary:')
-print(model.sentences)
-print(model.vocabulary)
-print(model.token_list)
-print(model.sentence_indices)
+model = ShabdAyamahPratirup(3,'relu')
+
+model.sentence2indices(["troll2 is great","gymkata is great"])
+
+model.learn(100,0.01,0.000000001,Tanitra.Tanitra([5,1,2,3]))
+
+print(model.params['embeddings'].data)
