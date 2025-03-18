@@ -7,19 +7,22 @@ from tensorflow.keras.datasets import mnist
 (x_train_ref, y_train), (x_test_ref, y_test) = mnist.load_data()
 x_train_ref, x_test_ref = x_train_ref / 255.0, x_test_ref / 255.0
 
-x_train = cp.zeros((29800, 28,28))
-x_test = cp.zeros((200,784))
-y_train_revised = cp.zeros((29800,10))
-y_test_revised = cp.zeros((200,10))
+x_train = cp.zeros((5, 28,28))
+x_test = cp.zeros((5,784))
+y_train_revised = cp.zeros((5 ,10))
+y_test_revised = cp.zeros((5,10))
 
-for i in range(len(x_train[:29800])):
+for i in range(len(x_train[:5])):
     x_train[i] = cp.array(x_train_ref[i])
 
-for i in range(len(y_train[:29800])):
+for i in range(len(y_train[:5])):
     y_train_revised[i][cp.array(y_train)[i]] = 1
 
-for i in range(len(y_test[29800:30000])):
+for i in range(len(y_test[:5])):
     y_test_revised[i][cp.array(y_test)[i]] = 1
+
+print(y_test_revised,y_train_revised)
+
 
 x_train = Tanitra(x_train)
 x_test = Tanitra(x_test)
@@ -33,8 +36,12 @@ normalizer = Samasuchaka('min-max')
 model.add(PraveshParata((28,28)))
 model.add(ConvLayer2D(2,5,4,'relu'))
 model.add(MaxPoolingLayer2D(2,3))
-model.add(GuptaParata(80, 'relu',))
-model.add(GuptaParata(60, 'relu',))
-model.add(NirgamParata(10, 'relu',))
+model.add(GuptaParata(300, 'relu',))
+model.add(GuptaParata(256, 'relu',))
+model.add(NirgamParata(10, 'softmax',))
 
-model.learn ( x_train, y_train_revised,epochs=1000,tol = 0.000000000001)
+model.learn ( x_train, y_train_revised,epochs=1000,tol = 0.000000001)
+result = []
+for i in x_train:
+    result.append(model.estimate(i).data.argmax())
+print(y_train_revised.data,result)

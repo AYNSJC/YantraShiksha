@@ -25,7 +25,7 @@ class Tanitra:
         new_tanitra = Tanitra(self.data - other.data)
         if self.track_gradient:
             new_tanitra.parents.append((self, lambda g: g* cp.ones_like(other.data)))
-            new_tanitra.parents.append((other, lambda g: g*cp.ones_like(self.data)))
+            new_tanitra.parents.append((other, lambda g: -g*cp.ones_like(self.data)))
         return new_tanitra
 
     def __mul__(self, other):
@@ -105,6 +105,11 @@ class Tanitra:
             self.grad += grad
         for parent,gradient_function in self.parents:
             parent.backward(gradient_function(grad))
+
+    def grad_0(self):
+        for parent,gradient_function in self.parents:
+            parent.grad = 0
+            parent.grad_0()
 
 def sigmoid(data):
     if not isinstance(data,Tanitra):
@@ -219,7 +224,7 @@ def softmax(a,axis=0):
     result = exponent/sum
     new_tanitra = Tanitra(result)
     if a.track_gradient:
-        new_tanitra.parents.append((a,lambda g: g.data * result * (1 - result)))
+        new_tanitra.parents.append((a,lambda g: g * result * (1 - result)))
     return new_tanitra
 
 def log(x):

@@ -54,6 +54,8 @@ class GuptaParata:
             output = Tanitra.sigmoid(output)
         elif self.activation == 'linear':
             pass
+        elif self.activation == 'softmax':
+            pass
         else:
             raise RuntimeError("Invalid activation function was Input")
         return output
@@ -87,6 +89,8 @@ class NirgamParata:
             output = Tanitra.sigmoid(output)
         elif self.activation == 'linear':
             pass
+        elif self.activation == 'softmax':
+            output = Tanitra.softmax(output)
         else:
             raise RuntimeError("Invalid activation function was Input")
         return output
