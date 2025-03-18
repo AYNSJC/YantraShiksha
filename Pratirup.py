@@ -113,15 +113,15 @@ class ShabdAyamahPratirup:
         training_data_x = Tanitra.Tanitra([])
         training_data_y = Tanitra.Tanitra([])
         for i in self.sentence_indices:
-            for j in range(Tanitra.length(i)-1):
+            for j in range(Tanitra.length(i)-2):
                 train_x = cp.zeros(self.vocabulary)
                 train_y = cp.zeros(self.vocabulary)
-                train_x[j] = 1
+                train_x[j] = 0.5
+                train_x[j+2] = 0.5
                 train_y[j+1] = 1
-                training_data_x.append(train_x)
-                training_data_y.append(train_y)
                 training_data_x.append(train_y)
                 training_data_y.append(train_x)
+        
         loss = 0
         for _ in range(epochs):
             prev_loss = loss
@@ -151,6 +151,7 @@ if __name__ == '__main__':
 
     model.sentence2indices(["troll is great","gymkata is great"])
 
-    model.learn(1000,1,0.000000001,Tanitra.Tanitra([5,1,2,3]))
+    model.learn(100,1,0.000000001,Tanitra.Tanitra([5,1,2,3]))
+    print(model.forward_fake(Tanitra.Tanitra([0,1,0,0])).data)
 
     print(model.params['embeddings'].data)
