@@ -66,6 +66,7 @@ class Tanitra:
                 gradient = cp.zeros_like(self.data)
                 new_shape = self.data[index].shape
                 grad.reshape(new_shape)
+                gradient = gradient.astype(cp.float64)
                 gradient[index] += grad
                 return gradient
             new_tanitra.parents.append((self,gradn))
@@ -105,6 +106,7 @@ class Tanitra:
             self.grad += grad
         for parent,gradient_function in self.parents:
             parent.backward(gradient_function(grad))
+
 
     def grad_0(self):
         for parent,gradient_function in self.parents:

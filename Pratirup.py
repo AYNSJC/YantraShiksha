@@ -110,18 +110,8 @@ class ShabdAyamahPratirup:
 
     def learn(self,epochs,lr,tol,sentences):
         self.sentence_indices.append(sentences)
-        training_data_x = Tanitra.Tanitra([])
-        training_data_y = Tanitra.Tanitra([])
-        for i in self.sentence_indices:
-            for j in range(Tanitra.length(i)-2):
-                train_x = cp.zeros(self.vocabulary)
-                train_y = cp.zeros(self.vocabulary)
-                train_x[j] = 0.5
-                train_x[j+2] = 0.5
-                train_y[j+1] = 1
-                training_data_x.append(train_y)
-                training_data_y.append(train_x)
-        
+        training_data_x = Tanitra.Tanitra([[0,1,0,0],[1,0,1,0],[0,0,1,1],[1,0,0,0],[0,0,0,1]])
+        training_data_y = Tanitra.Tanitra([[1/3,0,1/3,1/3],[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]])
         loss = 0
         for _ in range(epochs):
             prev_loss = loss
@@ -136,22 +126,22 @@ class ShabdAyamahPratirup:
                     cp.clip(self.params[j].grad, -3, 3, out=self.params[j].grad)
                     self.params[j].data = self.params[j].data - self.params[j].grad * lr
                 req_loss.grad_0()
+            print("Epoch no. ", _)
+            print("  loss is ", loss)
+            print(" ")
             if prev_loss - loss < tol and _ != 0:
                 break
             if not (prev_loss - loss < tol and _ != 0) and _ == epochs - 1:
                 print('loss did not converge. please consider increasing the epochs')
-            print("Epoch no. ", _)
-            print("  loss is ", loss)
-            print(" ")
 
 if __name__ == '__main__':
 
 
-    model = ShabdAyamahPratirup(2,'relu')
+    model = ShabdAyamahPratirup(3,'relu')
 
     model.sentence2indices(["troll is great","gymkata is great"])
 
-    model.learn(100,1,0.000000001,Tanitra.Tanitra([5,1,2,3]))
+    model.learn(1000,1,0.000000001,Tanitra.Tanitra([5,1,2,3]))
     print(model.forward_fake(Tanitra.Tanitra([0,1,0,0])).data)
 
     print(model.params['embeddings'].data)
