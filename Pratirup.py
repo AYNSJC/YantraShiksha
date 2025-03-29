@@ -1,5 +1,8 @@
 import Tanitra
 import cupy as cp
+import matplotlib.pyplot as plt
+import Parata
+import numpy as np
 
 class AnukramikPratirup:
 
@@ -21,16 +24,20 @@ class AnukramikPratirup:
     def learn(self,X,y,optimizer = 'Gradient Descent',epochs = 1000,lr = 0.1,tol = 0.00001):
         if optimizer == 'Gradient Descent':
             loss = 0
+            epoch = []
+            loss_a = []
             for _ in range(epochs):
                 prev_loss = loss
                 loss = 0
                 for i in range(Tanitra.length(X)):
+                    print('yes')
                     y_pred = self.estimate(X[i])
                     loss += Tanitra.to_cons(Tanitra.mean(Tanitra.square(y_pred - y[i])) / Tanitra.length(X) )
                     req_loss = Tanitra.square(y_pred - y[i])/ Tanitra.length(X)
                     req_loss.backward()
                     for j in self.layers:
                         for k in j.params:
+                            print('yes')
                             j.params[k].data = j.params[k].data - j.params[k].grad*lr/Tanitra.length(X)
                     req_loss.grad_0()
                 if prev_loss - loss < tol and _ != 0:
@@ -38,8 +45,13 @@ class AnukramikPratirup:
                 if not (prev_loss - loss < tol and _ != 0) and _ == epochs - 1:
                     print("\n\nError did not converge. Please consider increasing number of epochs.")
                 print("Epoch no. ",_)
+                epoch.append(_)
+                loss_a.append(float(loss))
                 print("  loss is ",loss)
                 print(" ")
+            plt.plot(epoch, loss_a)
+            plt.show()
+
 
 class ShabdAyamahPratirup:
 
@@ -51,7 +63,9 @@ class ShabdAyamahPratirup:
         self.sentences = []
         self.sentence_indices = []
         self.params = {}
+        self.layers = [Parata.GuptaParata(self.embedding_dimension, 'linear',)]
         self.params_initialized = False
+        self.grad = {}
 
     def sentence2indices(self,sentences, token_identification = 'separate by space', token_list = None):
         vocabulary = 0
@@ -93,13 +107,15 @@ class ShabdAyamahPratirup:
                                                           * (1.0 / cp.sqrt(self.vocabulary))),
                            'weight_dash': Tanitra.Tanitra(cp.random.randn(self.embedding_dimension, self.vocabulary))
                                           / cp.sqrt(self.vocabulary/2)}
+            self.grad = {'embeddings':  Tanitra.Tanitra(cp.zeros((self.vocabulary, self.embedding_dimension))),
+                         'weight_dash': Tanitra.Tanitra(cp.zeros((self.embedding_dimension, self.vocabulary)))}
             self.params_initialized = True
         if not isinstance(x,Tanitra.Tanitra):
             x = Tanitra.Tanitra(x)
         y = x@self.params['embeddings']
-        y = y@self.params['weight_dash']
-        y = Tanitra.softmax(y)
-        return y
+        y1 = y@self.params['weight_dash']
+        y2 = Tanitra.softmax(y1)
+        return y2
 
     def forward(self,x):
         if not self.params_initialized:
@@ -114,25 +130,27 @@ class ShabdAyamahPratirup:
         if sentences is not None:
             for i in sentences:
                 self.sentence_indices.append(i)
+        self.layers.append(Parata.GuptaParata(self.vocabulary,'softmax'))
         training_data_x = []
         training_data_y = []
-        context_repetition  = {}
-        for i in self.sentence_indices:
-            for j in range(len(i)-window_size+1):
-                window = i[j:j+window_size]
-                for k in window[1:-1]:
-                    if k not in context_repetition:
-                        context_repetition[k] = cp.zeros(self.vocabulary)
-                    for l in window:
-                        if l != k:
-                            context_repetition[k][l] += 1
-        for i in context_repetition:
-            train_x = cp.zeros(self.vocabulary)
-            train_x[i] = 1
-            train_y = context_repetition[i]/cp.sum(context_repetition[i])
-            training_data_x.append(train_x)
-            training_data_y.append(train_y)
-        print(training_data_y,training_data_x)
+        epoch = []
+        loss_a = []
+        for sentence in self.sentence_indices:
+            for j in range(len(sentence) - window_size+1):
+                window = sentence[j:j + window_size + 1]
+                for target_pos in range(len(window)):
+                    target = window[target_pos]
+                    train_x = cp.zeros(self.vocabulary)
+                    train_x[target] = 1
+                    train_y = cp.zeros(self.vocabulary)
+                    for context_pos in range(len(window)):
+                        if context_pos != target_pos:
+                            context = window[context_pos]
+                            train_y[context] = 1
+                    training_data_x.append(train_x)
+                    training_data_y.append(train_y/4)
+        print(training_data_x)
+        print(training_data_y)
         loss = 0
         for _ in range(epochs):
             prev_loss = loss
@@ -144,34 +162,51 @@ class ShabdAyamahPratirup:
                 req_loss = Tanitra.square(y_pred - training_data_y[i]) / len(training_data_x)
                 req_loss.backward()
                 for j in self.params:
-                    #cp.clip(self.params[j].grad, -3, 3, out=self.params[j].grad)
-                    self.params[j].data = self.params[j].data - self.params[j].grad * lr
+                    self.grad[j].data += self.params[j].grad/len(training_data_x)
                 req_loss.grad_0()
+            for j in self.params:
+                self.params[j] = self.params[j] - self.grad[j] * lr
             print("Epoch no. ", _)
+            epoch.append(_)
+            loss_a.append(float(loss))
             print("  loss is ", loss)
             print(" ")
             if prev_loss - loss < tol and _ != 0:
                 break
             if not (prev_loss - loss < tol and _ != 0) and _ == epochs - 1:
                 print('loss did not converge. please consider increasing the epochs')
+        plt.plot(epoch,loss_a)
+        plt.show()
 
 if __name__ == '__main__':
-    model = ShabdAyamahPratirup(3,'skip gram')
+    model = ShabdAyamahPratirup(10,'skip gram')
 
     model.sentence2indices([
-    "Elon Musk ne Tesla banayi.",
-    "Einstein ne Theory of Relativity di.",
-    "Virat Kohli ek cricketer hai.",
-    "Python ek programming language hai.",
-    "Sundar Pichai Google ka CEO hai.",
-    "Quantum Computing AI ka future hai.",
-    "Iron Man ek Marvel ka character hai.",
-    "Shah Rukh Khan Bollywood ka Badshah hai.",
-    "Moon landing 1969 me hui thi.",
-    "Bitcoin ek cryptocurrency hai."
+    "A king is a powerful male ruler.",
+    "A queen is a powerful female ruler.",
+    "A man is an adult male human.",
+    "A woman is an adult female human.",
+    "Males and females belong to different genders.",
+    "A queen is married to a king.",
+    "A king and a queen rule a kingdom.",
+    "A man and a woman are adults.",
+    "A ruler can be a man or a woman.",
+    "A queen is not a man but a woman."
 ])
+    model.learn(20,1,1e-10,7)
 
-    print(model.token_list)
+    # Given word embeddings
+    embeddings = model.params['embeddings']
 
-    model.learn(1000,1,1e-10,4,)
-    print(model.params['embeddings'].data)
+    print(embeddings[model.token_list['queen']].data)
+    print(embeddings[model.token_list['king']].data-embeddings[model.token_list['man']].data+
+          embeddings[model.token_list['woman']].data)
+
+    # Extract embeddings
+    faster_vec = embeddings[model.token_list['queen']].data
+    slower_vec = (embeddings[model.token_list['king']].data-embeddings[model.token_list['man']].data+
+                  embeddings[model.token_list['woman']].data)
+
+    # Compute cosine similarity
+    cosine_similarity = cp.dot(faster_vec, slower_vec) / (cp.linalg.norm(faster_vec) * cp.linalg.norm(slower_vec))
+    print(cosine_similarity)

@@ -1,49 +1,140 @@
-from Tanitra import Tanitra
-from Parata import PraveshParata, GuptaParata, NirgamParata, Samasuchaka,ConvLayer2D,MaxPoolingLayer2D
-from Pratirup import AnukramikPratirup
+import Tanitra
+import Parata
+import cv2
+import Pratirup
+import os
 import cupy as cp
-from tensorflow.keras.datasets import mnist
 
-(x_train_ref, y_train), (x_test_ref, y_test) = mnist.load_data()
-x_train_ref, x_test_ref = x_train_ref / 255.0, x_test_ref / 255.0
+id = input(int("Enter User ID (any number):"))
+dataset_path = "C:/Users/rohit/OneDrive/Documents/GitHub/YantraShiksha/faces_dataset/"
+os.makedirs(dataset_path, exist_ok=True)
 
-x_train = cp.zeros((300, 28,28))
-x_test = cp.zeros((50,784))
-y_train_revised = cp.zeros((300 ,10))
-y_test_revised = cp.zeros((50,10))
+labels_file_path = "C:/Users/rohit/OneDrive/Documents/GitHub/YantraShiksha/labels.txt"
+print("Look at the camera and move a bit here and there... Collecting data...")
 
-for i in range(len(x_train[:300])):
-    x_train[i] = cp.array(x_train_ref[i])
+class FaceDataset:
+    def __init__(self, img_dir, labels_file):
+        self.img_dir = img_dir
+        self.labels = self.load_labels(labels_file)
 
-for i in range(len(x_train[:50])):
-    x_train[i] = cp.array(x_test_ref[i])
+    def load_labels(self, labels_file):
+        with open(labels_file, "r") as f:
+            lines = f.readlines()
+        labels = []
+        for line in lines:
+            parts = line.strip().split()
+            img_name = parts[0]
+            bbox = list(map(float, parts[1:5]))  # x, y, w, h
+            labels.append((img_name, bbox))
+        return labels
 
-for i in range(len(y_train[:300])):
-    y_train_revised[i][cp.array(y_train)[i]] = 1
+    def load_image_and_bbox(self, img_name, bbox):
+        img_path = os.path.join(self.img_dir, img_name)
+        img = cv2.imread(img_path)
+        img = cv2.resize(img, (64, 64))
+        img = Tanitra.Tanitra(img / 255.0)  # Normalize
+        return img, Tanitra.Tanitra(bbox)
 
-for i in range(len(y_test[:50])):
-    y_test_revised[i][cp.array(y_test)[i]] = 1
+    def __getitem__(self, idx):
+        img_name, bbox = self.labels[idx]
+        img, bbox = self.load_image_and_bbox(img_name, bbox)
+        return img, bbox
 
-print(y_test_revised,y_train_revised)
+    def __len__(self):
+        return len(self.labels)
+
+cap = cv2.VideoCapture(0)
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+
+img_count = 0
+labels = []
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+    for (x, y, w, h) in faces:
+        img_name = f"face_{img_count}.jpg"
+        img_path = os.path.join(dataset_path, img_name)
+
+        face_img = frame[y:y+h, x:x+w]
+        face_img = cv2.resize(face_img, (64, 64))
+        cv2.imwrite(img_path, face_img)
+
+        labels.append(f"{img_name} {x} {y} {w} {h}")
+
+        img_count += 1
+
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+    cv2.imshow("Face Collection", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord("q") or img_count >= 1:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
 
 
-x_train = Tanitra(x_train)
-x_test = Tanitra(x_test)
-y_train_revised = Tanitra(y_train_revised)
-y_test_revised = Tanitra(y_test_revised)
+print("Face data collected! Now training model...")
 
-model = AnukramikPratirup()
 
-normalizer = Samasuchaka('min-max')
+with open(labels_file_path, "w") as f:
+    for label in labels:
+        f.write(label + "\n")
 
-model.add(PraveshParata((28,28)))
-model.add(ConvLayer2D(2,5,6,'relu'))
-model.add(MaxPoolingLayer2D(2,4))
-model.add(GuptaParata(100, 'relu',))
-model.add(NirgamParata(10, 'softmax',))
 
-model.learn ( x_train, y_train_revised,epochs=2,tol = 0.000000001)
-result = []
-for i in x_test:
-    result.append([model.estimate(i).data.argmax(),y_test[i].data.argmax()])
-print(result)
+class FaceDetector(Pratirup.AnukramikPratirup):
+    def __init__(self):
+        super().__init__()
+        self.add(Parata.ConvLayer2D(stride=1, filters=32, channels=3, kernel_size=3, activation="relu"))
+        self.add(Parata.ConvLayer2D(stride=1, filters=64, channels=32, kernel_size=3, activation="relu"))
+        self.add(Parata.MaxPoolingLayer2D(stride=2, pool_window=2,channels=64))
+        self.add(Parata.GuptaParata(n_neurons=128, activation="relu"))
+        self.add(Parata.NirgamParata(n_neurons=4, activation="linear"))  # x, y, w, h
+
+dataset = FaceDataset(dataset_path, labels_file_path)
+X_train, y_train = [], []
+
+for i in range(len(dataset)):
+    img, bbox = dataset[i]
+    image = img.data
+    image = cp.resize(image,(3,64,64))
+    X_train.append(image)
+    y_train.append(bbox.data)
+
+
+X_train = Tanitra.Tanitra(X_train)
+y_train = Tanitra.Tanitra(y_train)
+
+model = FaceDetector()
+model.learn(X_train, y_train, optimizer="Gradient Descent", epochs=1000, lr=0.001)
+
+print("Model trained successfully! Now running the recognition code.")
+
+cap = cv2.VideoCapture(0)
+print("Scanning for faces...")
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    img = cv2.resize(frame, (64, 64))
+    img = Tanitra.Tanitra(img / 255.0)
+
+    bbox = model.estimate(img).detach().numpy()
+    x, y, w, h = bbox[0]
+    cv2.rectangle(frame, (x, y), (x + w, y + h), (0,0,255), 2)
+    cv2.putText(frame, 'recognised id {id}', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8,(0,0,255) , 2)
+    cv2.rectangle(frame, (int(x), int(y)), (int(x + w), int(y + h)), (0, 255, 0), 2)
+    cv2.imshow("Face Detection", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+
+cap.release()
+cv2.destroyAllWindows()

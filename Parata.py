@@ -55,7 +55,7 @@ class GuptaParata:
         elif self.activation == 'linear':
             pass
         elif self.activation == 'softmax':
-            pass
+            output = Tanitra.softmax(output)
         else:
             raise RuntimeError("Invalid activation function was Input")
         return output
@@ -132,51 +132,68 @@ class Samasuchaka:
         if self.normalization == 'min-max':
             return (X-self.X_min)/(self.X_max-self.X_min+1e-8),(y-self.y_min)/(self.y_max-self.y_min+1e-8)
 
+
 class ConvLayer2D:
 
-    def __init__(self,stride,filters,kernel_size,activation,input_shape=None,padding_constant = 0,
-                 padding_mode = None,padding_width = 0):
+    def __init__(self, stride, filters, channels, kernel_size, activation, input_shape=None, padding_constant=0,
+                 padding_mode=None, padding_width=0):
         self.input_output_learned = False
         self.stride = stride
         self.filters = filters
         self.kernel_size = kernel_size
         self.input_shape = input_shape
         self.params = {}
+        self.channels = channels
         self.padding = padding_mode
         self.padding_width = padding_width
         self.padding_constant = padding_constant
         self.activation = activation
         self.output = None
 
-    def forward(self,X):
+    def forward(self, X):
+        if X.shape[0] != self.channels:
+            print(X.shape)
+            raise ValueError(f"Expected {self.channels} channels, but got {X.shape[0]} channels.")
+
         output = Tanitra.Tanitra([])
         if not self.input_output_learned:
             self.input_shape = X.shape
-            self.output = (self.filters, (self.input_shape[0] - self.kernel_size) / self.stride + 1,
-                           (self.input_shape[1] -self.kernel_size) / self.stride + 1)
+            self.output = (self.filters, (self.input_shape[1] - self.kernel_size) // self.stride + 1,
+                           (self.input_shape[2] - self.kernel_size) // self.stride + 1)
             for i in range(self.filters):
-                self.params['kernels'+str(i)] = Tanitra.Tanitra(cp.random.randn(self.kernel_size,self.kernel_size)
-                                                /self.input_shape[0]*self.input_shape[1])
+                self.params['kernels' + str(i)] = Tanitra.Tanitra(cp.random.randn(self.channels, self.kernel_size,
+                                                                                  self.kernel_size) /
+                                                                  (self.input_shape[1] * self.input_shape[2]))
             self.input_output_learned = True
-        if len(self.input_shape) == 3 and self.channels == 1:
-            raise RuntimeError("Shape of X cannot be 3D if number of channels are 1")
-        for i in self.params:
-            output = output.append(Tanitra.convolution2d(X , self.params[i],self.stride, padding_mode =
-                self.padding,pad_width=self.padding_width,constant_values=self.padding_constant))
+
+        for i in range(self.filters):
+            feature_map = Tanitra.Tanitra(0)
+            for j in range(self.channels):
+                feature_map += Tanitra.convolution2d(X[j], self.params['kernels' + str(i)][j], self.stride,
+                                                     padding_mode=self.padding, pad_width=self.padding_width,
+                                                     constant_values=self.padding_constant)
+            output = output.append(feature_map)
+
         if self.activation == 'relu':
             output = Tanitra.relu(output)
         elif self.activation == 'sigmoid':
             output = Tanitra.sigmoid(output)
+        elif self.activation == 'linear':
+            pass
         else:
-            raise ValueError("invalid activation")
+            raise ValueError("Invalid activation")
+
         return output
+
 
 class MaxPoolingLayer2D:
 
-    def __init__(self,stride,pool_window,padding_mode = None,pad_width = 0,pad_constants = 0,input_shape = None):
+    def __init__(self, stride, pool_window, channels, padding_mode=None, pad_width=0, pad_constants=0,
+                 input_shape=None):
         self.params = {}
         self.stride = stride
         self.pool_window = pool_window
+        self.channels = channels
         self.padding = padding_mode
         self.pad_width = pad_width
         self.pad_constants = pad_constants
@@ -184,11 +201,18 @@ class MaxPoolingLayer2D:
         self.output = None
         self.input_output_learned = False
 
-    def forward(self,X):
+    def forward(self, X):
+        if X.shape[0] != self.channels:
+            raise ValueError(f"Expected {self.channels} channels, but got {X.shape[0]} channels.")
+
         output = Tanitra.Tanitra([])
-        if not self.input_shape:
+        if not self.input_output_learned:
             self.input_shape = X.shape
-        for i in range(Tanitra.length(X)):
-            output  = output.append(Tanitra.pooling2d(X[i],self.pool_window,self.stride,padding_mode=self.padding,
-                                            pad_width=self.pad_width,constant_values=self.pad_constants))
+            self.input_output_learned = True
+
+        for j in range(self.channels):
+            output = output.append(
+                Tanitra.pooling2d(X[j], self.pool_window, self.stride, padding_mode=self.padding,
+                                  pad_width=self.pad_width, constant_values=self.pad_constants))
+
         return output

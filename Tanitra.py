@@ -98,6 +98,7 @@ class Tanitra:
         return new_tanitra
 
     def backward(self,grad=None):
+        print('yes')
         if grad is None:
             grad = cp.ones_like(self.data)
         if self.grad is None:
@@ -106,7 +107,6 @@ class Tanitra:
             self.grad += grad
         for parent,gradient_function in self.parents:
             parent.backward(gradient_function(grad))
-
 
     def grad_0(self):
         for parent,gradient_function in self.parents:
