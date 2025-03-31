@@ -98,7 +98,6 @@ class Tanitra:
         return new_tanitra
 
     def backward(self,grad=None):
-        print('yes')
         if grad is None:
             grad = cp.ones_like(self.data)
         if self.grad is None:

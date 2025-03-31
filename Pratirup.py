@@ -2,7 +2,6 @@ import Tanitra
 import cupy as cp
 import matplotlib.pyplot as plt
 import Parata
-import numpy as np
 
 class AnukramikPratirup:
 
@@ -30,14 +29,12 @@ class AnukramikPratirup:
                 prev_loss = loss
                 loss = 0
                 for i in range(Tanitra.length(X)):
-                    print('yes')
                     y_pred = self.estimate(X[i])
                     loss += Tanitra.to_cons(Tanitra.mean(Tanitra.square(y_pred - y[i])) / Tanitra.length(X) )
                     req_loss = Tanitra.square(y_pred - y[i])/ Tanitra.length(X)
                     req_loss.backward()
                     for j in self.layers:
                         for k in j.params:
-                            print('yes')
                             j.params[k].data = j.params[k].data - j.params[k].grad*lr/Tanitra.length(X)
                     req_loss.grad_0()
                 if prev_loss - loss < tol and _ != 0:
@@ -147,8 +144,12 @@ class ShabdAyamahPratirup:
                         if context_pos != target_pos:
                             context = window[context_pos]
                             train_y[context] = 1
-                    training_data_x.append(train_x)
-                    training_data_y.append(train_y/4)
+                    if self.method == 'CBOW':
+                        training_data_x.append(train_y)
+                        training_data_y.append(train_x)
+                    elif self.method == 'skip gram':
+                        training_data_x.append(train_x)
+                        training_data_y.append(train_y/(window_size-1))
         print(training_data_x)
         print(training_data_y)
         loss = 0
@@ -182,31 +183,19 @@ if __name__ == '__main__':
     model = ShabdAyamahPratirup(10,'skip gram')
 
     model.sentence2indices([
-    "A king is a powerful male ruler.",
-    "A queen is a powerful female ruler.",
-    "A man is an adult male human.",
-    "A woman is an adult female human.",
-    "Males and females belong to different genders.",
-    "A queen is married to a king.",
-    "A king and a queen rule a kingdom.",
-    "A man and a woman are adults.",
-    "A ruler can be a man or a woman.",
-    "A queen is not a man but a woman."
+    "Italy is country","France is country"
 ])
-    model.learn(20,1,1e-10,7)
+    model.learn(200,0.1,1e-10,2)
 
     # Given word embeddings
     embeddings = model.params['embeddings']
 
-    print(embeddings[model.token_list['queen']].data)
-    print(embeddings[model.token_list['king']].data-embeddings[model.token_list['man']].data+
-          embeddings[model.token_list['woman']].data)
 
     # Extract embeddings
-    faster_vec = embeddings[model.token_list['queen']].data
-    slower_vec = (embeddings[model.token_list['king']].data-embeddings[model.token_list['man']].data+
-                  embeddings[model.token_list['woman']].data)
+    faster_vec = embeddings[model.token_list['italy']].data
+    slower_vec = embeddings[model.token_list['france']].data
 
     # Compute cosine similarity
     cosine_similarity = cp.dot(faster_vec, slower_vec) / (cp.linalg.norm(faster_vec) * cp.linalg.norm(slower_vec))
     print(cosine_similarity)
+    print(model.forward_fake(Tanitra.Tanitra([0,0,1,0])).data)
