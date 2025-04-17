@@ -115,12 +115,6 @@ class ShabdAyamahPratirup:
         return y2
 
     def forward(self,x):
-        if not self.params_initialized:
-            self.params = { 'embeddings':Tanitra.Tanitra(cp.random.randn(self.vocabulary, self.embedding_dimension)
-                                                         * (1.0 / cp.sqrt(self.vocabulary))),
-                           'weight_dash': Tanitra.Tanitra(cp.random.randn(self.embedding_dimension, self.vocabulary))
-                                          / cp.sqrt(self.vocabulary/2)}
-            self.params_initialized = True
         return self.params['embeddings'][x]
 
     def learn(self,epochs,lr,tol,window_size,sentences = None):
@@ -134,7 +128,7 @@ class ShabdAyamahPratirup:
         loss_a = []
         for sentence in self.sentence_indices:
             for j in range(len(sentence) - window_size+1):
-                window = sentence[j:j + window_size + 1]
+                window = sentence[j:j + window_size ]
                 for target_pos in range(len(window)):
                     target = window[target_pos]
                     train_x = cp.zeros(self.vocabulary)
@@ -180,22 +174,14 @@ class ShabdAyamahPratirup:
         plt.show()
 
 if __name__ == '__main__':
-    model = ShabdAyamahPratirup(10,'skip gram')
-
+    model = ShabdAyamahPratirup(20,'skip gram')
     model.sentence2indices([
-    "Italy is country","France is country"
+    "mumbai city","hi i am from banglore"
 ])
-    model.learn(200,0.1,1e-10,2)
-
-    # Given word embeddings
+    model.learn(3000,0.1,1e-9,4)
     embeddings = model.params['embeddings']
-
-
-    # Extract embeddings
-    faster_vec = embeddings[model.token_list['italy']].data
-    slower_vec = embeddings[model.token_list['france']].data
-
-    # Compute cosine similarity
+    faster_vec = embeddings[model.token_list['mumbai']].data
+    slower_vec = embeddings[model.token_list['banglore']].data
     cosine_similarity = cp.dot(faster_vec, slower_vec) / (cp.linalg.norm(faster_vec) * cp.linalg.norm(slower_vec))
     print(cosine_similarity)
-    print(model.forward_fake(Tanitra.Tanitra([0,0,1,0])).data)
+    print(faster_vec,slower_vec)

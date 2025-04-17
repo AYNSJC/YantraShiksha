@@ -216,3 +216,47 @@ class MaxPoolingLayer2D:
                                   pad_width=self.pad_width, constant_values=self.pad_constants))
 
         return output
+
+class LSTM:
+
+    def __init__(self):
+        self.long_term_memory = None
+        self.short_term_memory = None
+        self.params = {}
+        self.params_initialized = False
+
+    def forward(self,X):
+        if not isinstance(X,Tanitra.Tanitra):
+            X = Tanitra.Tanitra(X)
+        if not self.params_initialized:
+            self.params['forget_gate_short_memory_weights'] = Tanitra.Tanitra(cp.random.randn(len(X.data),len(X.data)))
+            self.params['forget_gate_input_weights'] = Tanitra.Tanitra(cp.random.randn(len(X.data), len(X.data)))
+            self.params['forget_gate_biases'] = Tanitra.Tanitra(cp.random.randn(len(X.data)))
+            self.params['input_gate%_short_memory_weights'] = Tanitra.Tanitra(cp.random.randn(len(X.data), len(X.data)))
+            self.params['input_gate%_input_weights'] = Tanitra.Tanitra(cp.random.randn(len(X.data), len(X.data)))
+            self.params['input_gate%_biases'] = Tanitra.Tanitra(cp.random.randn(len(X.data)))
+            self.params['input_gate_short_memory_weights'] = Tanitra.Tanitra(cp.random.randn(len(X.data), len(X.data)))
+            self.params['input_gate_input_weights'] = Tanitra.Tanitra(cp.random.randn(len(X.data), len(X.data)))
+            self.params['input_gate_biases'] = Tanitra.Tanitra(cp.random.randn(len(X.data)))
+            self.params['output_gate_short_memory_weights'] = Tanitra.Tanitra(cp.random.randn(len(X.data), len(X.data)))
+            self.params['output_gate_input_weights'] = Tanitra.Tanitra(cp.random.randn(len(X.data), len(X.data)))
+            self.params['output_gate_biases'] = Tanitra.Tanitra(cp.random.randn(len(X.data)))
+            self.params_initialized = True
+        self.long_term_memory = Tanitra.Tanitra(cp.zeros_like(X.data))
+        self.short_term_memory = Tanitra.Tanitra(cp.zeros_like(X.data))
+        for i in range(len(X.data)):
+            percentage_remember = (self.short_term_memory@self.params['forget_gate_short_memory_weights']+
+                                   X[i]@self.params['forget_gate_input_weights'])+self.params['forget_gate_biases']
+            percentage_remember = Tanitra.sigmoid(percentage_remember)
+            self.long_term_memory *= percentage_remember
+            potential_memory = (self.short_term_memory@self.params['input_gate_short_memory_weights']+
+                                   X[i]@self.params['input_gate_input_weights'])+self.params['input_gate_biases']
+            potential_memory = Tanitra.tanh(potential_memory)
+            potential_memory_remember = (self.short_term_memory @ self.params['input_gate%_short_memory_weights'] +
+                                X[i]@ self.params['input_gate%_input_weights']) + self.params['input_gate%_biases']
+            potential_memory_remember = Tanitra.sigmoid(potential_memory_remember)
+            self.long_term_memory += potential_memory*potential_memory_remember
+            percentage_short_term_remember = (self.short_term_memory@self.params['output_gate_short_memory_weights']+
+                                   X[i]@self.params['output_gate_input_weights'])+self.params['output_gate_biases']
+            percentage_short_term_remember = Tanitra.sigmoid(percentage_short_term_remember)
+            self.short_term_memory = percentage_short_term_remember*self.long_term_memory

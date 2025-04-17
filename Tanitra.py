@@ -111,6 +111,7 @@ class Tanitra:
         for parent,gradient_function in self.parents:
             parent.grad = 0
             parent.grad_0()
+        self.parents = []
 
 def sigmoid(data):
     if not isinstance(data,Tanitra):
@@ -238,3 +239,12 @@ def log(x):
     if x.track_gradient:
         a.parents.append((x,grad_func))
     return a
+
+def tanh(x):
+    if not isinstance(x,Tanitra):
+        x = Tanitra(x)
+    a = Tanitra(cp.tanh(x.data))
+    def grad_func(grad):
+        return grad*(1-(cp.tanh(x.data)^2))
+    if x.track_gradient:
+        a.parents.append((x,grad_func))

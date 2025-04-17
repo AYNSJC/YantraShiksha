@@ -6,9 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="5989554e-918c-4291-8146-6596f909aeb4" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Parata.py" beforeDir="false" afterPath="$PROJECT_DIR$/Parata.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Pratirup.py" beforeDir="false" afterPath="$PROJECT_DIR$/Pratirup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tanitra.py" beforeDir="false" afterPath="$PROJECT_DIR$/Tanitra.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/trial.py" beforeDir="false" afterPath="$PROJECT_DIR$/trial.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/water.py" beforeDir="false" afterPath="$PROJECT_DIR$/water.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,20 +36,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.Parata.executor": "Run",
-    "Python.Pratirup.executor": "Run",
-    "Python.Tanitra.executor": "Run",
-    "Python.luck_simulation.executor": "Run",
-    "Python.project.executor": "Run",
-    "Python.trial.executor": "Run",
-    "Python.ved_teach.executor": "Run",
-    "Python.water.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.Parata.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Pratirup.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Tanitra.executor&quot;: &quot;Run&quot;,
+    &quot;Python.luck_simulation.executor&quot;: &quot;Run&quot;,
+    &quot;Python.project.executor&quot;: &quot;Run&quot;,
+    &quot;Python.trial.executor&quot;: &quot;Run&quot;,
+    &quot;Python.ved_teach.executor&quot;: &quot;Run&quot;,
+    &quot;Python.water.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
