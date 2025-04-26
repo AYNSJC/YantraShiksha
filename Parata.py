@@ -289,8 +289,8 @@ class SelfAttention:
         value = Tanitra.Tanitra([])
         for i in x:
             value = value.append(self.params['V_up']@(self.params['V_down']@i))
-        x += attention@value
-        return x
+        y = x + attention@value
+        return y
 
 class MultiHeadedAttention:
 
@@ -303,5 +303,9 @@ class MultiHeadedAttention:
             self.attention_layers.append(SelfAttention(self.embedding_dim,self.d_model))
 
     def forward(self,x):
+        add = cp.zeros_like(x)
         for i in range(len(self.attention_layers)):
-            
+            y = self.attention_layers[i].forward(x)
+            add += y-x
+        x += add
+        return x
