@@ -1,4 +1,6 @@
 import cupy as cp
+from scipy.special import values
+
 import Tanitra
 import math
 
@@ -260,3 +262,46 @@ class LSTM:
                                    X[i]@self.params['output_gate_input_weights'])+self.params['output_gate_biases']
             percentage_short_term_remember = Tanitra.sigmoid(percentage_short_term_remember)
             self.short_term_memory = percentage_short_term_remember*self.long_term_memory
+
+class SelfAttention:
+
+    def __init__(self,embedding_dim,d_model):
+        self.embedding_dim = embedding_dim
+        self.d_model = d_model
+        self.params = {
+            'Q': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)),
+            'K': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)),
+            'V_down': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)),
+            'V_up':Tanitra.Tanitra(cp.random.randn(d_model,embedding_dim))
+        }
+
+    def forward(self,x):
+        if not isinstance(x,Tanitra.Tanitra):
+            x = Tanitra.Tanitra(x)
+        query = Tanitra.Tanitra([])
+        key = Tanitra.Tanitra([])
+        for i in x:
+            key = key.append(i@self.params['K'])
+            query = query.append(i @ self.params['Q'])
+        attention = query@key.T()
+        for i in range(Tanitra.length(attention)):
+            attention[i] = Tanitra.softmax(attention[i])
+        value = Tanitra.Tanitra([])
+        for i in x:
+            value = value.append(self.params['V_up']@(self.params['V_down']@i))
+        x += attention@value
+        return x
+
+class MultiHeadedAttention:
+
+    def __init__(self,embedding_dim,d_model,n_heads):
+        self.embedding_dim = embedding_dim
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.attention_layers = []
+        for i in range(n_heads):
+            self.attention_layers.append(SelfAttention(self.embedding_dim,self.d_model))
+
+    def forward(self,x):
+        for i in range(len(self.attention_layers)):
+            

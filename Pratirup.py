@@ -176,12 +176,34 @@ class ShabdAyamahPratirup:
 if __name__ == '__main__':
     model = ShabdAyamahPratirup(20,'skip gram')
     model.sentence2indices([
-    "mumbai city","hi i am from banglore"
+
+        "Mumbai is the financial capital of India.",
+    "The Gateway of India is a famous monument in Mumbai.",
+    "Mumbai local trains are the lifeline of the city.",
+    "Bollywood, the Hindi film industry, is based in Mumbai.",
+    "Marine Drive is a beautiful spot in South Mumbai.",
+    "Chhatrapati Shivaji Maharaj Terminus is a UNESCO World Heritage Site in Mumbai.",
+    "Mumbai is known for its street food like vada pav and pav bhaji.",
+    "The city never sleeps and is always bustling with activity.",
+    "Mumbai has a mix of colonial architecture and modern skyscrapers.",
+    "Monsoon rains in Mumbai can cause waterlogging and traffic jams.",
+
+    "Bangalore is the financial capital of India.",
+    "The Gateway of India is a famous monument in Bangalore.",
+    "Bangalore local trains are the lifeline of the city.",
+    "Bollywood, the Hindi film industry, is based in Bangalore.",
+    "Marine Drive is a beautiful spot in South Bangalore.",
+    "Chhatrapati Shivaji Maharaj Terminus is a UNESCO World Heritage Site in Bangalore.",
+    "Bangalore is known for its street food like vada pav and pav bhaji.",
+    "The city never sleeps and is always bustling with activity.",
+    "Bangalore has a mix of colonial architecture and modern skyscrapers.",
+    "Monsoon rains in Bangalore can cause waterlogging and traffic jams."
+
 ])
-    model.learn(3000,0.1,1e-9,4)
+    model.learn(3000,1000,1e-90,6)
     embeddings = model.params['embeddings']
-    faster_vec = embeddings[model.token_list['mumbai']].data
-    slower_vec = embeddings[model.token_list['banglore']].data
+    # 1. pizza - pasta
+    faster_vec = embeddings[model.token_list['bangalore']].data
+    slower_vec = embeddings[model.token_list['mumbai']].data
     cosine_similarity = cp.dot(faster_vec, slower_vec) / (cp.linalg.norm(faster_vec) * cp.linalg.norm(slower_vec))
-    print(cosine_similarity)
-    print(faster_vec,slower_vec)
+    print("pizza - pasta:", cosine_similarity)

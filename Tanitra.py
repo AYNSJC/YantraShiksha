@@ -83,6 +83,14 @@ class Tanitra:
             new_tanitra.parents.append((self, lambda g: g.reshape(self.shape)))
         return new_tanitra
 
+    def dot(self,a):
+        if not isinstance(a,Tanitra):
+            a = Tanitra(a)
+        new_Tanitra = Tanitra(cp.dot(self.data,a.data))
+        new_Tanitra.parents.append((a,lambda g: g*self.data))
+        new_Tanitra.parents.append((self, lambda g: g * a))
+        return new_Tanitra
+
     def append(self,other):
         if not isinstance(other,Tanitra):
             other = Tanitra(other)
@@ -112,6 +120,11 @@ class Tanitra:
             parent.grad = 0
             parent.grad_0()
         self.parents = []
+
+    def T(self):
+        x = Tanitra(self.data.T)
+        if self.track_gradient:
+            x.parents.append(self,lambda g:g.T)
 
 def sigmoid(data):
     if not isinstance(data,Tanitra):
@@ -248,3 +261,4 @@ def tanh(x):
         return grad*(1-(cp.tanh(x.data)^2))
     if x.track_gradient:
         a.parents.append((x,grad_func))
+    return a
