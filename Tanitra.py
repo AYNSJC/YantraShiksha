@@ -124,7 +124,8 @@ class Tanitra:
     def T(self):
         x = Tanitra(self.data.T)
         if self.track_gradient:
-            x.parents.append(self,lambda g:g.T)
+            x.parents.append((self,lambda g:g.T))
+        return x
 
 def sigmoid(data):
     if not isinstance(data,Tanitra):
@@ -258,7 +259,34 @@ def tanh(x):
         x = Tanitra(x)
     a = Tanitra(cp.tanh(x.data))
     def grad_func(grad):
-        return grad*(1-(cp.tanh(x.data)^2))
+        return grad*(1-(cp.tanh(x.data)**2))
     if x.track_gradient:
         a.parents.append((x,grad_func))
     return a
+
+def cos(x):
+    if not isinstance(x,Tanitra):
+        x = Tanitra(x)
+    a = Tanitra(cp.cos(x.data))
+    def grad_func(grad):
+        return grad*-1*cp.sin(x.data)
+    if x.track_gradient:
+        a.parents.append((x,grad_func))
+    return a
+
+def sin(x):
+    if not isinstance(x,Tanitra):
+        x = Tanitra(x)
+    a = Tanitra(cp.sin(x.data))
+    def grad_func(grad):
+        return grad*cp.cos(x.data)
+    if x.track_gradient:
+        a.parents.append((x,grad_func))
+    return a
+
+a = Tanitra([[1],[2]])
+b = Tanitra([[2,1],[3,4]])
+c = b@a
+print(c.data)
+c.backward()
+print(a.grad,b.grad)

@@ -1,6 +1,4 @@
 import cupy as cp
-from scipy.special import values
-
 import Tanitra
 import math
 
@@ -269,27 +267,21 @@ class SelfAttention:
         self.embedding_dim = embedding_dim
         self.d_model = d_model
         self.params = {
-            'Q': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)),
-            'K': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)),
-            'V_down': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)),
-            'V_up':Tanitra.Tanitra(cp.random.randn(d_model,embedding_dim))
+            'Q': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)/(self.embedding_dim**0.5)),
+            'K': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)/(self.embedding_dim**0.5)),
+            'V_down': Tanitra.Tanitra(cp.random.randn(embedding_dim,d_model)/(self.embedding_dim**0.5)),
+            'V_up':Tanitra.Tanitra(cp.random.randn(d_model,embedding_dim)/(self.embedding_dim**0.5))
         }
 
     def forward(self,x):
         if not isinstance(x,Tanitra.Tanitra):
             x = Tanitra.Tanitra(x)
-        query = Tanitra.Tanitra([])
-        key = Tanitra.Tanitra([])
-        for i in x:
-            key = key.append(i@self.params['K'])
-            query = query.append(i @ self.params['Q'])
-        attention = query@key.T()
-        for i in range(Tanitra.length(attention)):
-            attention[i] = Tanitra.softmax(attention[i])
-        value = Tanitra.Tanitra([])
-        for i in x:
-            value = value.append(self.params['V_up']@(self.params['V_down']@i))
-        y = x + attention@value
+        key = x@self.params['K']
+        query =x @ self.params['Q']
+        attention = (query@key.T())/(self.d_model**0.5)
+        attention_softmaxed  = Tanitra.softmax(attention,axis = 1)
+        value = x@self.params['V_down']@self.params['V_up']
+        y = x + attention_softmaxed@value
         return y
 
 class MultiHeadedAttention:
@@ -302,10 +294,37 @@ class MultiHeadedAttention:
         for i in range(n_heads):
             self.attention_layers.append(SelfAttention(self.embedding_dim,self.d_model))
 
-    def forward(self,x):
-        add = cp.zeros_like(x)
+    def forward(self, x):
+        if not isinstance(x, Tanitra.Tanitra):
+            x = Tanitra.Tanitra(x)
+        add = Tanitra.Tanitra(cp.zeros_like(x.data))
         for i in range(len(self.attention_layers)):
             y = self.attention_layers[i].forward(x)
-            add += y-x
+            add += y - x
         x += add
         return x
+
+class PositionalEncoding:
+
+    def __init__(self, embedding_dim):
+        self.embedding_dim  = embedding_dim
+
+    def forward(self,x):
+        if not isinstance(x, Tanitra.Tanitra):
+            x = Tanitra.Tanitra(x)
+        if not self.embedding_dim == Tanitra.length(x[0]):
+            raise RuntimeError("embedding_dim does not match the embedding dimension of the actual input.")
+        positional_encoding = cp.zeros_like(x.data,dtype = cp.float64)
+        for i in range(Tanitra.length(x)):
+            for j in range(self.embedding_dim):
+                if j % 2 == 0:
+                    positional_encoding[i][j] = cp.sin(i / (10000 ** (2 * j / self.embedding_dim)))
+                else:
+                    positional_encoding[i][j] = cp.cos(i / (10000 ** (2 * (j - 1) / self.embedding_dim)))
+        x = x + positional_encoding
+        return x
+
+a = Tanitra.Tanitra([[1,2,6,7,3],[6,7,4,8,9],[3,4,4,5,7],[2,4,1,0,8]])
+a = PositionalEncoding(5).forward(a)
+b = MultiHeadedAttention(5,2,5).forward(a)
+print(b.data)
