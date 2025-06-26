@@ -1,6 +1,13 @@
 import cupy as cp
 import Tanitra
 import math
+import Ganit
+
+a = Ganit.Tanitra([2,2], 3)
+b = Ganit.Tanitra([2,2], 3)
+c = Ganit.div(Ganit.cos(a),Ganit.sin(a))
+d = Ganit.sub(c,Ganit.cot(a))
+d.print()
 
 class Parata:
 

@@ -283,10 +283,3 @@ def sin(x):
     if x.track_gradient:
         a.parents.append((x,grad_func))
     return a
-
-a = Tanitra([[1],[2]])
-b = Tanitra([[2,1],[3,4]])
-c = b@a
-print(c.data)
-c.backward()
-print(a.grad,b.grad)
