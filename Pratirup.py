@@ -173,22 +173,15 @@ class ShabdAyamahPratirup:
         plt.plot(epoch,loss_a)
         plt.show()
 
-if __name__ == '__main__':
-    model = ShabdAyamahPratirup(20,'skip gram')
-    model.sentence2indices([
+model = AnukramikPratirup([
+                           Parata.GuptaParata(4,'relu'),
+                           Parata.NirgamParata(1,'relu')])
 
-        "Mumbai is the financial capital of India.",
-    "The Gateway of India is a famous monument in Mumbai.",
-    "Mumbai local trains are the lifeline of the city.",
-    "Bollywood, the Hindi film industry, is based in Mumbai.",
-    "Marine Drive is a beautiful spot in South Mumbai.",
-    "Chhatrapati Shivaji Maharaj Terminus is a UNESCO World Heritage Site in Mumbai.",
-    "Mumbai is known for its street food like vada pav and pav bhaji.",
-    "The city never sleeps and is always bustling with activity.",
-    "Mumbai has a mix of colonial architecture and modern skyscrapers.",
-    "Monsoon rains in Mumbai can cause waterlogging and traffic jams.",
+data_x = Tanitra.Tanitra([[0.1,0.2,0.3,0.4]])
+data_y = Tanitra.Tanitra([[0.2]])
 
-])
-    model.learn(3000,1000,1e-90,6)
-    embeddings = model.params['embeddings'].data
-    print(embeddings)
+data_test_x = Tanitra.Tanitra([0.1,0.2,0.3,0.4])
+data_test_y = Tanitra.Tanitra([2])
+
+model.learn(data_x,data_y)
+print(model.estimate(data_test_x).data)

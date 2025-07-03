@@ -4,6 +4,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include<functional>
 namespace py = pybind11;
 
 template <typename T>
@@ -25,8 +26,8 @@ class storage {
 
     public:
     std::vector<size_t> shape;
-        T *data;
-        size_t size;
+    T *data;
+    size_t size;
     storage(const storage& other)
   : shape(other.shape),
     size(other.size),
@@ -35,9 +36,11 @@ class storage {
         std::copy(other.data, other.data + size, data);
     }
 
+    storage():data(nullptr), size(0){}
     storage& operator=(const storage& other) {
         if (this != &other) {
-            delete[] data;
+            if(data != nullptr){
+            delete[] data;}
             shape = other.shape;
             size  = other.size;
             data  = new T[size];
@@ -55,8 +58,9 @@ class storage {
                 data[i] = default_value;
             }
         }
-        ~storage() {
-            delete[] data;
+        ~storage() {\
+            if(data!=nullptr){
+            delete[] data;}
         }
         std::vector<size_t> dimensions() {
             return shape;
@@ -84,13 +88,6 @@ class storage {
                 iterator = 1;
             }
             data[indice] = value;
-        }
-
-        void operator = (py::list &list) {
-            T *a = list.cast<py::list>();
-            for(int i = 0; i>size;i++){
-                data[i] = (a+i)*;
-            }
         }
 
         void print() {
@@ -200,7 +197,7 @@ template <typename T>
 storage<T> s_cos(storage<T> &a,size_t terms) {
     storage<T> return_variable = a;
     T result = 0;
-    double fact = 1;
+    float fact = 1;
     for (size_t i = 0; i < a.size; i++) {
         for (int j = 0; j < terms ; j++) {
             fact = 1;
@@ -262,16 +259,59 @@ class Tensor {
     }
     public:
         storage<float> data;
+        std::vector<std::function<storage<float>(storage<float>)>> funcs;
+        std::vector<Tensor*> parents;
+        storage<float> grad;
 
+        Tensor(storage<float> &other):data(other){}
+
+        Tensor(py::list& array){
+            new float a[];
+            int index = 0;
+            data.data = flatten(array,a,index)
+
+        }
 
         Tensor(std::vector<size_t> &dim,float default_value):data(dim,default_value){}
+
+        void backward(storage<float> gradient){
+            if(grad.data == nullptr){
+                grad = gradient;
+            }
+            else{
+                grad = grad+gradient;
+            }
+            for(int i = 0; i < size(parents); i++){
+                parents[i]->backward(funcs[i](gradient));
+
+            }
+        }
+
+        void backward(){
+            storage<float> gradient(data.shape, 1);
+            if(grad.data == nullptr){
+                grad = gradient;
+            }
+            else{
+                grad = grad+gradient;
+            }
+            for(int i = 0; i < size(parents); i++){
+                parents[i]->backward(funcs[i](gradient));
+            }
+        }
 
         void assign (py::list &list) {
             float *a = new float[data.size];
             int index = 0;
             flatten(list,a,index);
+            if(data.data != nullptr){
+            delete[] data.data;}
             data.data = a;
             }
+
+        Tensor gradient(){
+            return Tensor(grad);
+        }
 
         float access(std::vector<size_t> &idx) {
             return data.access(idx);}
@@ -292,12 +332,33 @@ class Tensor {
 Tensor add(Tensor &a, Tensor &b){
     Tensor c(a.data.shape, 0);
     c.data = a.data+b.data;
+    c.parents.push_back(&a);
+    c.parents.push_back(&b);
+    auto grad_func_add_b = [](storage<float> grad){
+        return grad;
+    };
+    auto grad_func_add_a = [](storage<float> grad){
+        return grad;
+    };
+    c.funcs.push_back(grad_func_add_a);
+    c.funcs.push_back(grad_func_add_b);
     return c;
 }
 
 Tensor sub(Tensor &a, Tensor &b){
     Tensor c(a.data.shape, 0);
     c.data = a.data-b.data;
+    c.parents.push_back(&a);
+    c.parents.push_back(&b);
+    auto grad_func_sub_a = [](storage<float> grad){
+        return grad;
+    };
+    auto grad_func_sub_b = [](storage<float> grad){
+        storage<float> minus_ones(grad.shape, -1);
+        return grad*minus_ones;
+    };
+    c.funcs.push_back(grad_func_sub_a);
+    c.funcs.push_back(grad_func_sub_b);
     return c;
 }
 
@@ -349,13 +410,24 @@ Tensor cot(Tensor &a){
     return c;
 }
 
+Tensor matmul(Tensor &a, Tensor &b){
+    storage<float> c = matmul(a.data, b.data);
+    Tensor d(c.shape, 0);
+    d.data = c;
+    return d;
+}
+
+
+
 PYBIND11_MODULE(Ganit, m) {
     pybind11::class_<Tensor>(m, "Tanitra")
-        .def(pybind11::init<std::vector<size_t>&, float>())
+        .def(pybind11::init<py::list&)
         .def("__getitem__", &Tensor::access)
         .def("__setitem__", &Tensor::change_value)
         .def("print", &Tensor::print)
-        .def("assign",&Tensor::assign);
+        .def("assign",&Tensor::assign)
+        .def("backward",py::overload_cast<>(&Tensor::backward))
+        .def("grad",&Tensor::gradient);
 
     m.def("__add__",&add)
     .def("__sub__", &sub)
@@ -366,5 +438,6 @@ PYBIND11_MODULE(Ganit, m) {
     .def("tan",&tan)
     .def("sec",&sec)
     .def("csc",&csc)
-    .def("cot", &cot);
+    .def("cot", &cot)
+    .def("__matmul__",&matmul);
 }

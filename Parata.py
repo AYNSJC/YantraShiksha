@@ -5,9 +5,12 @@ import Ganit
 
 a = Ganit.Tanitra([2,2], 3)
 b = Ganit.Tanitra([2,2], 3)
-c = Ganit.div(Ganit.cos(a),Ganit.sin(a))
-d = Ganit.sub(c,Ganit.cot(a))
-d.print()
+c = Ganit.Tanitra([2,2],2)
+e = Ganit.__sub__(a,b)
+d = Ganit.__add__(e,c)
+d.backward()
+c = b.grad()
+c.print()
 
 class Parata:
 
@@ -36,7 +39,7 @@ class GuptaParata:
 
     def __init__(self, n_neurons, activation, input_shape =  None):
         if isinstance(n_neurons, tuple):
-            raise ValueError("You can only have a 1d NirgamParata or the number of neurons should be an integer.")
+            raise ValueError("You can only have a 1d GuptaParata or the number of neurons should be an integer.")
         self.output_shape = (n_neurons,)
         self.params = {}
         self.n_neurons = n_neurons
