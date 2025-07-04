@@ -7,10 +7,10 @@ a = Ganit.Tanitra([2,2], 3)
 b = Ganit.Tanitra([2,2], 3)
 c = Ganit.Tanitra([2,2],2)
 e = Ganit.__sub__(a,b)
-d = Ganit.__add__(e,c)
-d.backward()
-c = b.grad()
-c.print()
+f = Ganit.__add__(a,b)
+g = Ganit.__add__(e,f)
+g.backward()
+a.grad().print()
 
 class Parata:
 
